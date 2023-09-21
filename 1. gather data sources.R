@@ -40,20 +40,28 @@ urban_rural.pcon <- s3read_using(read_csv,
 
 ofcom.mob.pcon2 <- ofcom.mob.pcon %>% select(parl_const, parl_const_name, contains("3G_prem_out"), contains("4g_prem_out"))
 
-
-ofcom.mob.pcon2$sumcheck = ofcom.mob.pcon2$`3G_prem_out_0` + ofcom.mob.pcon2$`3G_prem_out_1` + ofcom.mob.pcon2$`3G_prem_out_2` + ofcom.mob.pcon2$`3G_prem_out_3` + ofcom.mob.pcon2$`3G_prem_out_4`
-
 #mae all the NA values 0 as that's what this really means!
 ofcom.mob.pcon2[is.na(ofcom.mob.pcon2)] <- 0
 
 #sum together %ge for 0 and 1 providers 
-ofcom.mob.pcon2$`4G_prem_out_0_1` <- ofcom.mob.pcon2$`4G_prem_out_0` + ofcom.mob.pcon2$`4G_prem_out_1`
-ofcom.mob.pcon2$`3G_prem_out_0_1` <- ofcom.mob.pcon2$`3G_prem_out_0` + ofcom.mob.pcon2$`3G_prem_out_1`
-plot(ofcom.mob.pcon2$`4G_prem_out_0_1`, ofcom.mob.pcon2$`3G_prem_out_0_1`, cex = .5, main = "%ge getting 4G coverage from  0 or 1 provider vs 3G from 0 or 1")
+# ofcom.mob.pcon2$`4G_prem_out_0_1` <- ofcom.mob.pcon2$`4G_prem_out_0` + ofcom.mob.pcon2$`4G_prem_out_1`
+# ofcom.mob.pcon2$`3G_prem_out_0_1` <- ofcom.mob.pcon2$`3G_prem_out_0` + ofcom.mob.pcon2$`3G_prem_out_1`
+# plot(ofcom.mob.pcon2$`4G_prem_out_0_1`, ofcom.mob.pcon2$`3G_prem_out_0_1`, cex = .5, main = "%ge getting 4G coverage from  0 or 1 provider vs 3G from 0 or 1")
+# 
+# plot(ofcom.mob.pcon2$`4G_prem_out_0`, ofcom.mob.pcon2$`4G_prem_out_1`, cex = .5, main = "%ge getting no 4G coverage by %ge 4G from just 1 provider")
+# plot(ofcom.mob.pcon2$`4G_prem_out_0_1`, ofcom.mob.pcon2$`4G_prem_out_4`, cex = .5, main = "%ge getting 4G coverage from  0 or 1 provider by %ge getting coverage from all 4")
 
-plot(ofcom.mob.pcon2$`4G_prem_out_0`, ofcom.mob.pcon2$`4G_prem_out_1`, cex = .5, main = "%ge getting no 4G coverage by %ge 4G from just 1 provider")
-plot(ofcom.mob.pcon2$`4G_prem_out_0_1`, ofcom.mob.pcon2$`4G_prem_out_4`, cex = .5, main = "%ge getting 4G coverage from  0 or 1 provider by %ge getting coverage from all 4")
+#A PCA against the 4G and 3G 0 and 1 provider vars to summarise them
+# pca.df <- prcomp(ofcom.mob.pcon2[,14:15])
+# summary(pca.df)
+# ofcom.mob.pcon3 <- bind_cols(ofcom.mob.pcon2,pca.df$x)
 
-pca.df <- prcomp(ofcom.mob.pcon2[,14:15])
-summary(pca.df)
-ofcom.mob.pcon2 <- bind_cols(ofcom.mob.pcon2,pca.df$x)
+#PCA on all the data to produce the first component that we can use as a score of poor service
+pca.df2 <- prcomp(ofcom.mob.pcon2[,str_detect(colnames(ofcom.mob.pcon2), "3G_prem|4G_prem")])
+summary(pca.df2)
+ofcom.mob.pcon4 <- bind_cols(ofcom.mob.pcon2, pca.df2$x[,1])
+colnames(ofcom.mob.pcon4)[colnames(ofcom.mob.pcon4) == "...14"] <- "PCA1"
+
+ofcom.mob.pcon4 <- left_join(ofcom.mob.pcon4, urban_rural.pcon[,c(1,14)], by = c("parl_const" = "PCON11CD"))
+
+                                                               
