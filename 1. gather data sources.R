@@ -16,6 +16,9 @@ ofcom.mob.pcon <- s3read_using(read_csv, # here you tell the s3read_using which 
                      bucket = "wpi-vodaphone-rural-poverty"
                     )
 
+#keep England only
+ofcom.mob.pcon <- ofcom.mob.pcon %>% filter(str_detect(parl_const, "E"))
+
 
 Deprivation.pcon <- s3read_using(read_xlsx,
                                  object = "HoC-IMD-PCON-deprivation19.xlsx",
@@ -59,9 +62,71 @@ ofcom.mob.pcon2[is.na(ofcom.mob.pcon2)] <- 0
 #PCA on all the data to produce the first component that we can use as a score of poor service
 pca.df2 <- prcomp(ofcom.mob.pcon2[,str_detect(colnames(ofcom.mob.pcon2), "3G_prem|4G_prem")])
 summary(pca.df2)
-ofcom.mob.pcon4 <- bind_cols(ofcom.mob.pcon2, pca.df2$x[,1])
-colnames(ofcom.mob.pcon4)[colnames(ofcom.mob.pcon4) == "...14"] <- "PCA1"
+ofcom.mob.pcon2 <- bind_cols(ofcom.mob.pcon2, pca.df2$x[,1])
+colnames(ofcom.mob.pcon2)[colnames(ofcom.mob.pcon2) == "...13"] <- "PCA1"
 
-ofcom.mob.pcon4 <- left_join(ofcom.mob.pcon4, urban_rural.pcon[,c(1,14)], by = c("parl_const" = "PCON11CD"))
+#add Urban rural to the mix
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, urban_rural.pcon[,c(1,14)], by = c("parl_const" = "PCON11CD"))
 
-                                                               
+#add deprivation vars to the mix
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, Deprivation.pcon, by = c("parl_const" = "ONSConstID"))
+
+#3G 4G service quintiles
+ofcom.mob.pcon2$`Premises service quintiles (1 is worst service)` <- ntile(desc(ofcom.mob.pcon2$PCA1),5)
+
+
+#quick table 
+
+#by urban rural
+t1 <- ofcom.mob.pcon2 %>% group_by(`Broad RUC11`) %>% summarise("Mean PCA1 score (z-score, high = bad)" = round(mean(PCA1),2),
+                                                                "Mean % no 3g service" = round(mean(`3G_prem_out_0`),2),
+                                                                "Mean % no 4g service" = round(mean(`4G_prem_out_0`),2),
+                                                                "Mean % 1 3g service" = round(mean(`3G_prem_out_1`),2),
+                                                                "Mean % 1 4g service" = round(mean(`4G_prem_out_1`),2),
+                                                                "Mean % 2 3g service" = round(mean(`3G_prem_out_2`),2),
+                                                                "Mean % 2 4g service" = round(mean(`4G_prem_out_2`),2))
+
+
+ofcom.mob.pcon2$`IMD rank Quintile (1 is most deprived)` <- ntile(ofcom.mob.pcon2$`IMD rank 2019`,5)
+
+#by deprivation
+t2 <- ofcom.mob.pcon2 %>% 
+  group_by(`IMD rank Quintile (1 is most deprived)`) %>% summarise("Mean PCA1 score (z-score, high = bad)" = round(mean(PCA1),2),
+                                                                "Mean % no 3g service" = round(mean(`3G_prem_out_0`),2),
+                                                                "Mean % no 4g service" = round(mean(`4G_prem_out_0`),2),
+                                                                "Mean % 1 3g service" = round(mean(`3G_prem_out_1`),2),
+                                                                "Mean % 1 4g service" = round(mean(`4G_prem_out_1`),2),
+                                                                "Mean % 2 3g service" = round(mean(`3G_prem_out_2`),2),
+                                                                "Mean % 2 4g service" = round(mean(`4G_prem_out_2`),2))
+
+
+#by deprivation and urban rural
+t3 <- ofcom.mob.pcon2 %>% 
+  group_by(`IMD rank Quintile (1 is most deprived)`,`Broad RUC11`) %>% summarise("Mean PCA1 score (z-score, high = bad)" = round(mean(PCA1),2),
+                                                                                           "Mean % no 3g service" = round(mean(`3G_prem_out_0`),2),
+                                                                                           "Mean % no 4g service" = round(mean(`4G_prem_out_0`),2),
+                                                                                           "Mean % 1 3g service" = round(mean(`3G_prem_out_1`),2),
+                                                                                           "Mean % 1 4g service" = round(mean(`4G_prem_out_1`),2),
+                                                                                           "Mean % 2 3g service" = round(mean(`3G_prem_out_2`),2),
+                                                                                           "Mean % 2 4g service" = round(mean(`4G_prem_out_2`),2))
+
+
+
+t4 <- ofcom.mob.pcon2 %>% 
+  group_by(`Premises service quintiles (1 is worst service)`) %>% summarise("Mean IMD rank /533" = mean(`IMD rank 2019`),
+                                                                                                    "Predominately rural" = sum(`Broad RUC11` == "Predominantly Rural"),
+                                                                                                    "Urban with Significant Rural" = sum(`Broad RUC11` == "Urban with Significant Rural"),
+                                                                                                    "Predominantly Urban" = sum(`Broad RUC11` == "Predominantly Urban"),
+                                                                                                    "Count LSOAs in most deprived decile" = sum(`Number of LSOAs in most deprived decile`))
+
+
+#Rural only
+t5 <- ofcom.mob.pcon2 %>% filter(`Broad RUC11` == "Predominantly Rural") %>%  
+  group_by(`Premises service quintiles (1 is worst service)`) %>% summarise("Mean IMD rank /533" = mean(`IMD rank 2019`),
+                                                                                                    "Predominately rural" = sum(`Broad RUC11` == "Predominantly Rural"),
+                                                                                                    # "Urban with Significant Rural" = sum(`Broad RUC11` == "Urban with Significant Rural"),
+                                                                                                    # "Predominantly Urban" = sum(`Broad RUC11` == "Predominantly Urban"),
+                                                                                                    "Count LSOAs in most deprived decile" = sum(`Number of LSOAs in most deprived decile`))
+
+
+
