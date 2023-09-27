@@ -11,26 +11,97 @@ library(aws.s3)
 ## connected Nations 2022 mobile PCON data https://www.ofcom.org.uk/research-and-data/multi-sector-research/infrastructure-research/connected-nations-2022/data
 ## about the data pdf https://www.ofcom.org.uk/__data/assets/pdf_file/0027/249462/202209-about-mobile-coverage-local-and-unitary-authority.pdf
 
+# 2023 update data https://www.ofcom.org.uk/research-and-data/multi-sector-research/infrastructure-research/summer-2023
+# about the data https://www.ofcom.org.uk/__data/assets/pdf_file/0031/267619/mobile-coverage-local-unitary-authority-5g-202304.pdf
+
+# #CN 2022 data
+# ofcom.mob.pcon <- s3read_using(read_csv, # here you tell the s3read_using which read function you are using, and the arguments of the function can follow inside after a comma as you would in the original function)
+#                      object = "202209_mobile_pcon_r01.csv", 
+#                      bucket = "wpi-vodaphone-rural-poverty"
+#                     )
+
+# CN 2023 update data
 ofcom.mob.pcon <- s3read_using(read_csv, # here you tell the s3read_using which read function you are using, and the arguments of the function can follow inside after a comma as you would in the original function)
-                     object = "202209_mobile_pcon_r01.csv", 
-                     bucket = "wpi-vodaphone-rural-poverty"
-                    )
+                               object = "202304_mobile_pcon_with_5g_r01.csv", 
+                               bucket = "wpi-vodaphone-rural-poverty"
+)
 
 #keep England only
-ofcom.mob.pcon <- ofcom.mob.pcon %>% filter(str_detect(parl_const, "E"))
+# ofcom.mob.pcon <- ofcom.mob.pcon %>% filter(str_detect(parl_const, "E"))
 
+#IMD19 England deprivation
+# Deprivation.pcon <- s3read_using(read_xlsx,
+#                                  object = "HoC-IMD-PCON-deprivation19.xlsx",
+#                                  bucket = "wpi-vodaphone-rural-poverty",
+#                                  sheet = "Data constituencies",
+#                                  )
+#this one is the CDRC all nations appended file
 
-Deprivation.pcon <- s3read_using(read_xlsx,
-                                 object = "HoC-IMD-PCON-deprivation19.xlsx",
-                                 bucket = "wpi-vodaphone-rural-poverty",
-                                 sheet = "Data constituencies",
-                                 )
+Deprivation.lsoa <- s3read_using(read_csv,
+                                 object = "uk_imd2019.csv",
+                                 bucket = "wpi-vodaphone-rural-poverty"
+) %>% select(LSOA, Rank)
 
+##### deviation to create a LSOA to PCON lookup
+# nspl <- s3read_using(read_csv,
+#                      object = "NSPL_FEB_2023_UK.csv",
+#                      bucket = "wpi-nspl",
+#                      col_select = c("pcon","lsoa11", "ctry" ))
+# 
+# nspl2 <- unique(nspl) #remove duplicates
+# Deprivation.lsoa <- left_join(Deprivation.lsoa, nspl2, by = c("LSOA" = "lsoa11"))
+# 
+# #NOTE NATIONS ARE NEVER TO BE COMPARED AS THE RANKINGS ARE INDEPENDENT
+# Deprivation.pcon <- Deprivation.lsoa %>% group_by(pcon) %>% 
+#                     summarise(`Average IMD rank` = mean(Rank, na.rm = T),
+#                               Country = first(ctry))
+# 
+# #add deciles within nations
+# Deprivation.pcon <- Deprivation.pcon %>% group_by(Country) %>% 
+#   mutate("IMD decile within nation" = ntile(`Average IMD rank`, 10))
+# 
+# #because nspl is so big saving locally 
+# saveRDS(Deprivation.pcon, "Deprivation.pcon.csv")
+Deprivation.pcon <- readRDS("Deprivation.pcon.csv")
 
-urban_rural.pcon <- s3read_using(read_csv,
+#add in the PCON names
+pcon.names <- s3read_using(read.csv,
+                           object = "Westminster Parliamentary Constituency names and codes UK as at 12_14.csv",
+                           bucket = "wpi-nspl/Documents",)
+
+Deprivation.pcon <- left_join(Deprivation.pcon, pcon.names, by = c("pcon" = "PCON14CD"))
+
+#Urban Rural ENGLAND
+urban_rural.pconE <- s3read_using(read_csv,
                                  object = "RUC_PCON_2011_EN_LU.csv",
-                                 bucket = "wpi-vodaphone-rural-poverty")
+                                 bucket = "wpi-vodaphone-rural-poverty") %>% 
+  select("pcon" = PCON11CD, 
+         "Constituency" = PCON11NM, 
+         `Broad RUC11`)
 
+
+
+#urban rural scotland
+urban_rural.pconS <- s3read_using(read_excel,
+                                 object = "scottish-urban-rural-classification.xlsx",
+                                 bucket = "wpi-vodaphone-rural-poverty",
+                                 sheet = "UKPC6FOLD",
+                                 skip = 2)
+#take max category and classify pcon by largest type of area represented
+urban_rural.pconS <- urban_rural.pconS %>% rowwise() %>% 
+  mutate(maxval = max(c_across(2:7)),
+         name = names(.[2:7])[which.max(c_across(2:7))]
+)
+
+urban_rural.pconS <- urban_rural.pconS %>% select(Constituency, "Broad RUC11" = name)
+
+#match the codes in grrr.
+urban_rural.pconS <- left_join(urban_rural.pconS, Deprivation.pcon[,c("pcon", "PCON14NM")] , 
+                               by = c("Constituency" = "PCON14NM" )) %>% 
+  na.omit()
+
+#and add together England and Scotland
+urban_rural.pcon <- bind_rows(urban_rural.pconE, urban_rural.pconS)
 
 
 #' select the 3g 4g variables we need
@@ -41,7 +112,14 @@ urban_rural.pcon <- s3read_using(read_csv,
 #' 4g outdoor -105dBm voice and -100dBm data
 #' VARIABLES NEEDED: 4G_prem_out_0:4
 
-ofcom.mob.pcon2 <- ofcom.mob.pcon %>% select(parl_const, parl_const_name, contains("3G_prem_out"), contains("4g_prem_out"))
+ofcom.mob.pcon2 <- ofcom.mob.pcon %>% select(parl_const, parl_const_name, 
+                                             #contains("3G_prem_out"), 
+                                             contains("4g_prem_out"), 
+                                             contains("5g_high_confidence_prem")) #5g has `high confidence` and `very high confidence` measures based on predictions of different signal strengths. High confidence is more achievable than very high confidence
+#we take high confidence
+
+
+
 
 #mae all the NA values 0 as that's what this really means!
 ofcom.mob.pcon2[is.na(ofcom.mob.pcon2)] <- 0
@@ -60,16 +138,23 @@ ofcom.mob.pcon2[is.na(ofcom.mob.pcon2)] <- 0
 # ofcom.mob.pcon3 <- bind_cols(ofcom.mob.pcon2,pca.df$x)
 
 #PCA on all the data to produce the first component that we can use as a score of poor service
-pca.df2 <- prcomp(ofcom.mob.pcon2[,str_detect(colnames(ofcom.mob.pcon2), "3G_prem|4G_prem")])
+pca.df2 <- prcomp(ofcom.mob.pcon2[,str_detect(colnames(ofcom.mob.pcon2), "3G_prem|4G_prem|5g_high")])
 summary(pca.df2)
 ofcom.mob.pcon2 <- bind_cols(ofcom.mob.pcon2, pca.df2$x[,1])
-colnames(ofcom.mob.pcon2)[colnames(ofcom.mob.pcon2) == "...13"] <- "PCA1"
+colnames(ofcom.mob.pcon2)[colnames(ofcom.mob.pcon2) == "...9"] <- "PCA1"
 
 #add Urban rural to the mix
-ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, urban_rural.pcon[,c(1,14)], by = c("parl_const" = "PCON11CD"))
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, urban_rural.pcon, by = c("parl_const" = "pcon"))
 
 #add deprivation vars to the mix
-ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, Deprivation.pcon, by = c("parl_const" = "ONSConstID"))
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, Deprivation.pcon, by = c("parl_const" = "pcon"))
+
+
+#####HERE#####
+
+
+
+
 
 #3G 4G service quintiles
 ofcom.mob.pcon2$`Premises service quintiles (1 is worst service)` <- ntile(desc(ofcom.mob.pcon2$PCA1),5)
