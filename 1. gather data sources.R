@@ -196,8 +196,22 @@ ofcom.mob.pcon2 <- ofcom.mob.pcon %>% select(parl_const, parl_const_name, prem_c
 #mae all the NA values 0 as that's what this really means!
 ofcom.mob.pcon2[is.na(ofcom.mob.pcon2)] <- 0
 #calculate the 1-3 providers by taking (100 - (All providers + 0 providers)
-ofcom.mob.pcon2$`4G_prem_1to3` <- round(100 - (ofcom.mob.pcon2$`4G_prem_out_All` + ofcom.mob.pcon2$`4G_prem_out_None`),2)
-ofcom.mob.pcon2$`5G_high_confidence_prem_1to3` <- round(100 - (ofcom.mob.pcon2$`5G_high_confidence_prem_out_All` + ofcom.mob.pcon2$`5G_high_confidence_prem_out_None`),2)
+ofcom.mob.pcon2$`4G_prem_1to3` <- round(100 - (ofcom.mob.pcon2$`4G_prem_out_All` + 
+                                                 ofcom.mob.pcon2$`4G_prem_out_None`),2)
+
+ofcom.mob.pcon2$`5G_high_confidence_prem_1to3` <- round(100 - (ofcom.mob.pcon2$`5G_high_confidence_prem_out_All` + 
+                                                                 ofcom.mob.pcon2$`5G_high_confidence_prem_out_None`),2)
+
+
+#sumchecks
+ofcom.mob.pcon2$test <- ofcom.mob.pcon2$`5G_high_confidence_prem_1to3`+ 
+  ofcom.mob.pcon2$`5G_high_confidence_prem_out_None` + 
+  ofcom.mob.pcon2$`5G_high_confidence_prem_out_All`
+
+ofcom.mob.pcon2$test
+
+ofcom.mob.pcon2$test <- NULL
+
 
 #PCA on all the data to produce the first component that we can use as a score of poor service
 pcavars <- c(
@@ -237,9 +251,13 @@ ofcom.mob.pcon2$index_score <- ofcom.mob.pcon2$IMD_scaled  * ofcom.mob.pcon2$PC1
 ofcom.mob.pcon2$`Premises service quintiles (1 is worst service)` <- ntile(desc(ofcom.mob.pcon2$PC1),5)
 
 # create premises counts for all the percentages for us to use in calculations later
-
 ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% rowwise() %>% mutate_at(vars(4:11), list(count = ~ ./100* prem_count))
 
+ofcom.mob.pcon2$sumcheck <- ofcom.mob.pcon2$`5G_high_confidence_prem_1to3_count` + 
+                            ofcom.mob.pcon2$`5G_high_confidence_prem_out_All_count` +
+                            ofcom.mob.pcon2$`5G_high_confidence_prem_out_None_count`
+
+round(ofcom.mob.pcon2$sumcheck - ofcom.mob.pcon2$prem_count,2)
 
 ############################################
 ############# POPULATIONS ################
