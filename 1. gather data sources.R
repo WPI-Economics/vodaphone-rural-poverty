@@ -49,7 +49,7 @@ Deprivation.pcon <- readRDS("Deprivation.pcon.csv")
 #add in the PCON names
 pcon.names <- s3read_using(read.csv,
                            object = "Westminster Parliamentary Constituency names and codes UK as at 12_14.csv",
-                           bucket = "wpi-nspl/Documents",)
+                           bucket = "wpi-nspl/Documents")
 
 Deprivation.pcon <- left_join(Deprivation.pcon, pcon.names, by = c("pcon" = "PCON14CD"))
 
@@ -62,98 +62,62 @@ table(Deprivation.pcon$`IMD quintile within nation`,Deprivation.pcon$`IMD decile
 ############# URBAN RURAL DATA ################
 ############################################
 
+#read in nspl data created in file 0.1
+pcds <- s3read_using(read_csv,
+                     object = "nspl_pcon23.csv",
+                     bucket = "wpi-vodaphone-rural-poverty/new-2023-constituencies")
+
+#add in the pcon names
+pcds <- left_join(pcds, pcon.names, by = c("pcon" = "PCON14CD"))
+
+#remove the 2023 names
+pcds <- pcds %>% select(-pcon23.nm)
+
+#create urban rural for pcons
+pcon.UR <- pcds %>% group_by(pcon, PCON14NM) %>% 
+  summarise(`Rural_count`  = length(pcd[Urban_rural == "Rural"]),
+            `Urban_count` = length(pcd[Urban_rural == "Urban"]),
+            `All_pcds_count` = length(pcd))
+
+pcon.UR <- pcon.UR %>% mutate(
+  Pct_Rural = (Rural_count / All_pcds_count) *100,
+  Pct_Urban = (Urban_count / All_pcds_count) *100
+)
+
+
+#'trying to stick a bit close to the ONS LAD rules
+#'mainly and largely rural are 50% rural or more
+#'urban with sig rural is 26-49% rural - ONS look for hub towns which we can't do here
+#'rest urban
+
+pcon.UR <- pcon.UR %>% mutate(
+ Rural = case_when(
+   Pct_Rural >= 50 ~ "Predominately rural",
+   Pct_Rural >= 26 & Pct_Rural < 50 ~ "Urban with significant rural",
+   Pct_Rural <26 ~ "Predominately urban"
+ )
+)
+
+#check agains ONS
 #Urban Rural ENGLAND
 urban_rural.pconE <- s3read_using(read_csv,
-                                 object = "RUC_PCON_2011_EN_LU.csv",
-                                 bucket = "wpi-vodaphone-rural-poverty") %>% 
+                                  object = "RUC_PCON_2011_EN_LU.csv",
+                                  bucket = "wpi-vodaphone-rural-poverty") %>% 
   select("pcon" = PCON11CD, 
          "Constituency" = PCON11NM, 
          `Broad RUC11`)
 
+pcon.UR <- left_join(pcon.UR, urban_rural.pconE, by = "pcon")
+table(pcon.UR$`Broad RUC11`, pcon.UR$Rural)
 
-
-#urban rural scotland
-urban_rural.pconS <- s3read_using(read_excel,
-                                 object = "scottish-urban-rural-classification.xlsx",
-                                 bucket = "wpi-vodaphone-rural-poverty",
-                                 sheet = "UKPC6FOLD",
-                                 skip = 2)
-#take max category and classify pcon by largest type of area represented
-urban_rural.pconS <- urban_rural.pconS %>% rowwise() %>% 
-  mutate(maxval = max(c_across(2:7)),
-         name = names(.[2:7])[which.max(c_across(2:7))]
+#keep the ONS data for England, and use this new variable for Wales and Scotland
+pcon.UR <- pcon.UR %>% mutate(
+  `Urban/Rural GB` = case_when(
+    str_starts(PCON14NM, "E") ~ `Broad RUC11`,
+    TRUE ~ `Rural`,
+    
+  )
 )
-
-urban_rural.pconS <- urban_rural.pconS %>% select(Constituency, "Broad RUC11" = name)
-
-#match the codes in grrr.
-urban_rural.pconS <- left_join(urban_rural.pconS, Deprivation.pcon[,c("pcon", "PCON14NM")] , 
-                               by = c("Constituency" = "PCON14NM" )) %>% 
-  na.omit()
-
-#and add together England and Scotland
-urban_rural.pcon <- bind_rows(urban_rural.pconE, urban_rural.pconS)
-# rm(urban_rural.pconE, urban_rural.pconS)
-
-#Wales have gone rogue and we don't have PCON U/R data so will have to build it from the LSOA dataset.
-wales.lsoa.UR <- s3read_using(read_csv,
-                              object = "Rural_Urban_Classification_(2011)_of_Lower_Layer_Super_Output_Areas_in_England_and_Wales.csv",
-                              bucket = "wpi-vodaphone-rural-poverty")
-wales.lsoa.UR <- wales.lsoa.UR %>% filter(str_detect(LSOA11CD, "W"))
-
-#now match in PCONs need lookup
-# nspl <- s3read_using(read_csv,
-#                      object = "NSPL_FEB_2023_UK.csv",
-#                      bucket = "wpi-nspl",
-#                      col_select = c("pcon","lsoa11", "ctry" ))
-# 
-# nspl <- unique(nspl) #remove duplicates
-# #save the lookup
-# saveRDS(nspl, "lsoa_pcon_lookup.RDS")
-lsoa.to.pcon <- readRDS("lsoa_pcon_lookup.RDS")
-
-wales.lsoa.UR <- left_join(wales.lsoa.UR, lsoa.to.pcon, by = c("LSOA11CD" = "lsoa11"))
-#summarise count each UR category within PCON
-table(wales.lsoa.UR$RUC11)
-
-#here is the ONS methods paper for LAD UR classification https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/591465/RUCLAD2011_User_Guide__January_2017_.pdf
-
-####These are the U/R categories used at the LSOA level
-# "Rural town and fringe"                             <- Rural
-# "Rural town and fringe in a sparse setting"         <- Rural     
-# "Rural village and dispersed"                       <- Rural
-# "Rural village and dispersed in a sparse setting"   <- Rural
-# "Urban city and town"                               <- Urban
-# "Urban city and town in a sparse setting"           <- Urban
-
-####And these are what we get at PCON level
-# "Accessible rural"                                  <- Rural     
-# "Accessible small towns"                            <- Urban
-# "Large urban"                                       <- Urban         
-# "Other urban"                                       <- Urban
-# "Predominantly Rural"                               <- Rural
-# "Predominantly Urban"                               <- Urban
-# "Remote rural"                                      <- Rural
-# "Urban with Significant Rural"                      <- Urban with sig Rural
-
-
-
-
-
-# wales.pcon.UR <- wales.lsoa.UR %>% group_by(pcon) %>% 
-#   summarise("Rural town and fringe"   
-#             "Rural town and fringe in a sparse setting"         
-#             "Rural village and dispersed" 
-#             "Rural village and dispersed in a sparse setting"   
-#             "Urban city and town"  
-#             "Urban city and town in a sparse setting")
-
-
-########################################################################
-#'Up to this point work to do to bring in U?R for UK in a harmonised way 
-#' coming back to it
-########################################################################
-
 
 ############################################
 ############# OFCOM DATA ################
@@ -216,9 +180,9 @@ ofcom.mob.pcon2$test <- NULL
 #PCA on all the data to produce the first component that we can use as a score of poor service
 pcavars <- c(
              #  "4G_prem_out_None",
-             # "5G_high_confidence_prem_out_None",
-             # "4G_prem_1to3",
-             # "5G_high_confidence_prem_1to3",
+              # "5G_high_confidence_prem_out_None",
+              # "4G_prem_1to3",
+              # "5G_high_confidence_prem_1to3",
           #all %ges for both 4 and 5 smerged together
             "4G_prem_out_All",
             "5G_high_confidence_prem_out_All"
@@ -230,9 +194,7 @@ ofcom.mob.pcon2 <- bind_cols(ofcom.mob.pcon2, pca.df2$x)
 
 
 #add Urban rural to the mix
-ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, urban_rural.pconE, by = c("parl_const" = "pcon"))
-#England only
-ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% filter(!is.na(`Broad RUC11`))
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pcon.UR, by = c("parl_const" = "pcon"))
 
 #add deprivation vars to the mix
 ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, Deprivation.pcon, by = c("parl_const" = "pcon"))
@@ -267,9 +229,38 @@ pops <- s3read_using(read_csv,
                                   object = "RUC_PCON_2011_EN_LU.csv",
                                   bucket = "wpi-vodaphone-rural-poverty") %>% select(PCON11CD, `Total population 2011`)
 
-ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pops, by = c("parl_const" = "PCON11CD"))
 
 
+
+scotpops <- s3read_using(read_excel,
+                         object = "Scotlandpops_ukpc-21-tabs.xlsx",
+                         bucket = "wpi-vodaphone-rural-poverty",
+                         sheet = "2021",
+                         skip = 3) %>% filter(Sex == "Persons", ) %>% select(c(2,4))
+
+scotpops <- scotpops %>% rename(PCON11CD = `UK Parliamentary Constituency 2005 Code`,
+                                "Total population 2021" = Total)
+
+
+Eng_walespops <- s3read_using(
+  read_csv,
+  object = "Census21 pops.csv",
+  bucket = "wpi-vodaphone-rural-poverty",
+  skip = 7
+  ) %>% na.omit()
+
+
+Eng_walespops <- Eng_walespops %>% rename(
+  PCON11CD = mnemonic,
+  "Total population 2021" = `2021`
+) %>% select(-`parliamentary constituency 2010`)
+
+pops_all <- bind_rows(Eng_walespops, scotpops)
+
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pops_all, by = c("parl_const" = "PCON11CD"))
+  
+#remove NI
+ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% na.omit(`Total population 2021`)
 
 ############################################
 ############# SAVE OUTFILE ################
