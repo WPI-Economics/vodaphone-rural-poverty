@@ -132,7 +132,7 @@ downloadthis::download_this(T_4G_URD, output_extension = ".xlsx")
 ### Deprivation and Urban Rural 4G, %ge of outside premises
 ```{r deprivation4g, warning=FALSE}
 T_4G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`, `Deprivation group`) %>% 
+  group_by(`Urban/Rural GB`,  `IMD quintile within nation`) %>% 
   summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1),
             "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1),
             "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1), 
@@ -144,10 +144,26 @@ downloadthis::download_this(T_4G_URD, output_extension = ".xlsx")
 
 ```
 
+### Deprivation 40:20:40 and Urban Rural 5G, %ge of outside premises
+```{r deprivation5g402040, warning=FALSE}
+T_5G_URD <- ofcom.df %>% 
+  group_by(`Urban/Rural GB`, `Deprivation group`) %>% 
+  summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1),
+            "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1),
+            "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1), 
+            #"Premises count" = sum(prem_count),
+            "Population 2021" = sum(`Total population 2021`))
+  
+rtable.fn.short(T_5G_URD)
+downloadthis::download_this(T_5G_URD, output_extension = ".xlsx")
+
+```
+
+
 ### Deprivation and Urban Rural 5G, %ge of outside premises
 ```{r deprivation5g, warning=FALSE}
 T_5G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`, `Deprivation group`) %>% 
+  group_by(`Urban/Rural GB`, `IMD quintile within nation`) %>% 
   summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1),
             "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1),
             "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1), 
