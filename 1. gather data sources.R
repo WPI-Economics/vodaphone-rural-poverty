@@ -92,9 +92,9 @@ pcon.UR <- pcon.UR %>% mutate(
 
 pcon.UR <- pcon.UR %>% mutate(
  Rural = case_when(
-   Pct_Rural >= 50 ~ "Predominately rural",
-   Pct_Rural >= 26 & Pct_Rural < 50 ~ "Urban with significant rural",
-   Pct_Rural <26 ~ "Predominately urban"
+   Pct_Rural >= 50 ~ "Predominantly Rural",
+   Pct_Rural >= 26 & Pct_Rural < 50 ~ "Urban with Significant Rural",
+   Pct_Rural <26 ~ "Predominantly Urban"
  )
 )
 
@@ -261,6 +261,16 @@ ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pops_all, by = c("parl_const" = "P
   
 #remove NI
 ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% na.omit(`Total population 2021`)
+
+#add deprivatin 40:20:40 grouping
+ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% 
+  mutate("Deprivation group" = case_when(
+    `IMD quintile within nation` %in% 1:2 ~ "1 & 2 Most deprived 40%",
+    `IMD quintile within nation` %in% 3 ~ "3 Middle quintile",
+    `IMD quintile within nation` %in% 4:5 ~ "4 and 5 least deprived 40%",
+  ))
+
+table(ofcom.mob.pcon2$`IMD quintile within nation`, ofcom.mob.pcon2$`Deprivation group`)
 
 ############################################
 ############# SAVE OUTFILE ################
