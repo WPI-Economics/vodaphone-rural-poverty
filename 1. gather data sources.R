@@ -180,7 +180,7 @@ ofcom.mob.pcon2$test <- NULL
 #PCA on all the data to produce the first component that we can use as a score of poor service
 pcavars <- c(
              #  "4G_prem_out_None",
-              # "5G_high_confidence_prem_out_None",
+             #  "5G_high_confidence_prem_out_None",
               # "4G_prem_1to3",
               # "5G_high_confidence_prem_1to3",
           #all %ges for both 4 and 5 smerged together
@@ -260,7 +260,7 @@ pops_all <- bind_rows(Eng_walespops, scotpops)
 ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pops_all, by = c("parl_const" = "PCON11CD"))
   
 #remove NI
-ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% na.omit(`Total population 2021`)
+ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% filter(!str_detect(parl_const, "N"))
 
 #add deprivatin 40:20:40 grouping
 ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% 
