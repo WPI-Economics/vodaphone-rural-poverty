@@ -191,7 +191,8 @@ pca.df2 <- prcomp(ofcom.mob.pcon2[pcavars]) #3G_prem removed
 summary(pca.df2)
 ofcom.mob.pcon2 <- bind_cols(ofcom.mob.pcon2, pca.df2$x)
 
-
+# #combine PC2 into PC1
+# ofcom.mob.pcon2$PC1 <- scale(ofcom.mob.pcon2$PC1 * ofcom.mob.pcon2$PC2)
 
 #add Urban rural to the mix
 ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, pcon.UR, by = c("parl_const" = "pcon"))
