@@ -79,132 +79,132 @@ rtable.fn.long <- function(my.df){  my.df %>%
 
 ```
 
-### Urban Rural 4G % outside premises
+<!-- ### Urban Rural 4G % outside premises -->
 
-```{r UR4G, warning=FALSE}
-T_4G_UR <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`) %>% 
-  summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1),
-            "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1),
-            "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
+<!-- ```{r UR4G, warning=FALSE} -->
+<!-- T_4G_UR <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1), -->
+<!--             "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
 
-# 
-# table.fn(T_4G_UR)
+<!-- #  -->
+<!-- # table.fn(T_4G_UR) -->
 
-rtable.fn.short(T_4G_UR)
-  downloadthis::download_this(T_4G_UR, output_extension = ".xlsx") 
-# reactable::reactable(T_4G_UR)
+<!-- rtable.fn.short(T_4G_UR) -->
+<!--   downloadthis::download_this(T_4G_UR, output_extension = ".xlsx")  -->
+<!-- # reactable::reactable(T_4G_UR) -->
 
-```
+<!-- ``` -->
 
-### Urban Rural 5G % outside premises
+<!-- ### Urban Rural 5G % outside premises -->
 
-```{r UR5G, warning=FALSE}
-T_5G_UR <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`) %>% 
-  summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count) *100,1),
-            "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count) *100,1),
-            "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count) *100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
-  
-rtable.fn.short(T_5G_UR)
-downloadthis::download_this(T_5G_UR, output_extension = ".xlsx")
+<!-- ```{r UR5G, warning=FALSE} -->
+<!-- T_5G_UR <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count) *100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count) *100,1), -->
+<!--             "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count) *100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
 
-```
+<!-- rtable.fn.short(T_5G_UR) -->
+<!-- downloadthis::download_this(T_5G_UR, output_extension = ".xlsx") -->
 
-### Deprivation grouped 40:20:40 and Urban Rural 4G, %ge of outside premises
-```{r deprivation4g402040, warning=FALSE}
+<!-- ``` -->
 
-T_4G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`, `Deprivation group`) %>% 
-  summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1),
-            "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1),
-            "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
-  
-rtable.fn.short(T_4G_URD)
-downloadthis::download_this(T_4G_URD, output_extension = ".xlsx")
+<!-- ### Deprivation grouped 40:20:40 and Urban Rural 4G, %ge of outside premises -->
+<!-- ```{r deprivation4g402040, warning=FALSE} -->
 
-```
+<!-- T_4G_URD <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`, `Deprivation group`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1), -->
+<!--             "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
 
+<!-- rtable.fn.short(T_4G_URD) -->
+<!-- downloadthis::download_this(T_4G_URD, output_extension = ".xlsx") -->
 
-### Deprivation and Urban Rural 4G, %ge of outside premises
-```{r deprivation4g, warning=FALSE}
-T_4G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`,  `IMD quintile within nation`) %>% 
-  summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1),
-            "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1),
-            "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
-  
-rtable.fn.short(T_4G_URD)
-downloadthis::download_this(T_4G_URD, output_extension = ".xlsx")
-
-```
-
-### Deprivation 40:20:40 and Urban Rural 5G, %ge of outside premises
-```{r deprivation5g402040, warning=FALSE}
-T_5G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`, `Deprivation group`) %>% 
-  summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1),
-            "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1),
-            "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
-  
-rtable.fn.short(T_5G_URD)
-downloadthis::download_this(T_5G_URD, output_extension = ".xlsx")
-
-```
+<!-- ``` -->
 
 
-### Deprivation and Urban Rural 5G, %ge of outside premises
-```{r deprivation5g, warning=FALSE}
-T_5G_URD <- ofcom.df %>% 
-  group_by(`Urban/Rural GB`, `IMD quintile within nation`) %>% 
-  summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1),
-            "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1),
-            "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1), 
-            #"Premises count" = sum(prem_count),
-            "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`) 
-  
-rtable.fn.short(T_5G_URD)
-downloadthis::download_this(T_5G_URD, output_extension = ".xlsx")
+<!-- ### Deprivation and Urban Rural 4G, %ge of outside premises -->
+<!-- ```{r deprivation4g, warning=FALSE} -->
+<!-- T_4G_URD <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`,  `IMD quintile within nation`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`4G_prem_out_None_count`)/sum(prem_count)*100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`4G_prem_1to3_count`)/sum(prem_count)*100,1), -->
+<!--             "All operators (%)" =  round(sum(`4G_prem_out_All_count`)/sum(prem_count)*100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
 
-```
+<!-- rtable.fn.short(T_4G_URD) -->
+<!-- downloadthis::download_this(T_4G_URD, output_extension = ".xlsx") -->
 
-### All constituency summary data 
-```{r pcon, warning=FALSE}
-pcon.table <- ofcom.df %>% ungroup() %>%  
-  mutate("Poor coverage percentile (1 is poor)" = ntile(`PC1`,100),
-         "Poor coverage x Deprivation percentile (1 is poor)" = ntile(index_score,100)) %>% arrange(index_score) %>% 
+<!-- ``` -->
 
-  select("Constituency" = parl_const_name,
-                                  "Rural/Urban group" = `Urban/Rural GB`,
-                                  "Coverage / Deprivation index percentile (1 is worst)" =`Poor coverage x Deprivation percentile (1 is poor)`,
-                                  "Poor coverage percentile (1 is worst)"= `Poor coverage percentile (1 is poor)`,
-                                  "Population 2021" = `Total population 2021`,
-                                  "Deprivation quintile 1 is lowest" = `IMD quintile within nation`,
-         
-                                  "4G Not-spots (%)" =`4G_prem_out_None`,
-                                  "4G partial not-spots (%)" =`4G_prem_1to3`,
-                                  "4G All operators (%)" =`4G_prem_out_All`,
-                                  "5G Not-spots (%)" = `5G_high_confidence_prem_out_None`,
-                                  "5G partial not-spots (%)" = `5G_high_confidence_prem_1to3`,
-                                  "5G All operators (%)" = `5G_high_confidence_prem_out_All`
-                                  
-                                 
+<!-- ### Deprivation 40:20:40 and Urban Rural 5G, %ge of outside premises -->
+<!-- ```{r deprivation5g402040, warning=FALSE} -->
+<!-- T_5G_URD <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`, `Deprivation group`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1), -->
+<!--             "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
 
-         )
+<!-- rtable.fn.short(T_5G_URD) -->
+<!-- downloadthis::download_this(T_5G_URD, output_extension = ".xlsx") -->
 
-rtable.fn.long(pcon.table)
-downloadthis::download_this(pcon.table, output_extension = ".xlsx")
-```
+<!-- ``` -->
+
+
+<!-- ### Deprivation and Urban Rural 5G, %ge of outside premises -->
+<!-- ```{r deprivation5g, warning=FALSE} -->
+<!-- T_5G_URD <- ofcom.df %>%  -->
+<!--   group_by(`Urban/Rural GB`, `IMD quintile within nation`) %>%  -->
+<!--   summarise("Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1), -->
+<!--             "Partial not-spots (%)" =  round(sum(`5G_high_confidence_prem_1to3_count`)/sum(prem_count)*100,1), -->
+<!--             "All operators (%)" =  round(sum(`5G_high_confidence_prem_out_All_count`)/sum(prem_count)*100,1),  -->
+<!--             #"Premises count" = sum(prem_count), -->
+<!--             "Population 2021" = sum(`Total population 2021`)) %>% na.omit(`Rural (both)`)  -->
+
+<!-- rtable.fn.short(T_5G_URD) -->
+<!-- downloadthis::download_this(T_5G_URD, output_extension = ".xlsx") -->
+
+<!-- ``` -->
+
+<!-- ### All constituency summary data  -->
+<!-- ```{r pcon, warning=FALSE} -->
+<!-- pcon.table <- ofcom.df %>% ungroup() %>%   -->
+<!--   mutate("Poor coverage percentile (1 is poor)" = ntile(`PC1`,100), -->
+<!--          "Poor coverage x Deprivation percentile (1 is poor)" = ntile(index_score,100)) %>% arrange(index_score) %>%  -->
+
+<!--   select("Constituency" = parl_const_name, -->
+<!--                                   "Rural/Urban group" = `Urban/Rural GB`, -->
+<!--                                   "Coverage / Deprivation index percentile (1 is worst)" =`Poor coverage x Deprivation percentile (1 is poor)`, -->
+<!--                                   "Poor coverage percentile (1 is worst)"= `Poor coverage percentile (1 is poor)`, -->
+<!--                                   "Population 2021" = `Total population 2021`, -->
+<!--                                   "Deprivation quintile 1 is lowest" = `IMD quintile within nation`, -->
+
+<!--                                   "4G Not-spots (%)" =`4G_prem_out_None`, -->
+<!--                                   "4G partial not-spots (%)" =`4G_prem_1to3`, -->
+<!--                                   "4G All operators (%)" =`4G_prem_out_All`, -->
+<!--                                   "5G Not-spots (%)" = `5G_high_confidence_prem_out_None`, -->
+<!--                                   "5G partial not-spots (%)" = `5G_high_confidence_prem_1to3`, -->
+<!--                                   "5G All operators (%)" = `5G_high_confidence_prem_out_All` -->
+
+
+
+<!--          ) -->
+
+<!-- rtable.fn.long(pcon.table) -->
+<!-- downloadthis::download_this(pcon.table, output_extension = ".xlsx") -->
+<!-- ``` -->
 
 
 ### Counties % premises counted as 5G not-spots by Urban/Rural

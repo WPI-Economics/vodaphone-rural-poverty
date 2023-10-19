@@ -273,6 +273,23 @@ ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>%
 
 table(ofcom.mob.pcon2$`IMD quintile within nation`, ofcom.mob.pcon2$`Deprivation group`)
 
+#add county variable in
+county.look <- pcds %>% select(pcon, UTLA21NM) %>% unique()
+
+
+
+ofcom.mob.pcon2 <- left_join(ofcom.mob.pcon2, county.look, by = c("parl_const" = "pcon"))
+
+ofcom.mob.pcon2 <- ofcom.mob.pcon2 %>% mutate(
+  county_nation = case_when(
+    Country == "E92000001" ~ UTLA21NM,
+    Country == "W92000004" ~ "Wales",
+    Country == "S92000003" ~ "Scotland"
+  )
+)
+
+table(ofcom.mob.pcon2$county_nation)
+unique(ofcom.mob.pcon2$county_nation)
 ############################################
 ############# SAVE OUTFILE ################
 ############################################

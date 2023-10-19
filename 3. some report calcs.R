@@ -27,3 +27,12 @@ round(u.40.poor/u.40*100,1)
 
 all.40.poor <-  ofcom.df %>% filter(`Poor coverage percentile (1 is poor)` <= 20) %>% nrow()
 rural.40 / all.40.poor *100
+
+
+#table of deprivation quintile tally in the poorest 20% of the index
+pcon.table$Rural_Urban_strict <- ifelse(pcon.table$`Rural/Urban group` %in% c("Predominantly Rural", "Urban with Significant Rural"), "Rural (both)", "Urban" )
+table(pcon.table$Rural_Urban_strict, pcon.table$`Rural/Urban group`)
+
+
+deptally20_pc <- pcon.table %>% filter(`Coverage / Deprivation index percentile (1 is worst)` <=20) %>% 
+  group_by(`Rural_Urban_strict`,`Deprivation quintile 1 is lowest`) %>% summarise(Count = n())

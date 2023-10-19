@@ -17,6 +17,11 @@ ru11ind.names <- s3read_using(read.csv,
                               object = "Rural Urban (2011) Indicator names and codes GB as at 12_16.csv",
                               bucket = "wpi-nspl/Documents")
 
+#County Unitary names
+laua.names <- s3read_using(read.csv,
+                              object = "LAU121_ITL321_ITL221_ITL121_UK_LU.csv",
+                              bucket = "wpi-nspl/Documents")
+
 unique(ru11ind.names$RU11NM)
 #recode into simple Urban and Rural
 
@@ -54,17 +59,54 @@ ru11ind.names <- ru11ind.names %>% mutate("Urban_rural" =
 ) 
 
 
+#lookup from lsoa11 to combined authority from ONS geography
+# county.look <- sf::st_read(
+#   "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LSOA11_UTLA21_EW_LU_16dd2caef0d4425b94e72dc7e4add26f/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+# ) %>% sf::st_drop_geometry()
+
+#lookup from LAD20 to county20
+LAD20 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD20_CTY20_EN_LU_598927d71aca422f893bab3ee1283f87/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAD19 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD19_CTY19_EN_LUv1_0d42f8f0668f425fba79989263ea08a6/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAD21 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD21_CTY21_EN_LU_34f63ba938f34b689b245b7c7c18bde5/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAD22 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD22_CTY22_EN_LU/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAD23 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LAD23_CTY23_EN_LU/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAtoLAUA23 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LTLA23_UTLA23_EW_LU/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+LAtoLAUA21 <- "https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/LTLA21_UTLA21_EW_LU_9bbac05558b74a88bda913ad5bf66917/FeatureServer/0/query?outFields=*&where=1%3D1&f=geojson"
+
+
+county.look <- sf::st_read(
+  LAtoLAUA21,
+)%>% sf::st_drop_geometry()
+
 ##### UR postcodes from NSPL (inc. Scotland and Wales)
-nspl <- s3read_using(read_csv,
+nsplraw <- s3read_using(read_csv,
                      object = "NSPL_MAY_2023_UK.csv",
                      bucket = "wpi-nspl")
 
-                     
-nspl <- nspl %>% select(c("pcd","lsoa11","pcon", "ru11ind", "lat", "long" ))
+nspl <- nsplraw %>% select(c("pcd","lsoa11","pcon", "ru11ind", "lat", "long", "laua" , "ctry"))
 
 #add the UR definitions
 nspl <- left_join(nspl, ru11ind.names, by = c("ru11ind" = "RU11IND"))
 nspl <- nspl %>% na.omit()
+
+
+#add Counties
+#nspl <- left_join(nspl, county.look, by = c("lsoa11" = "LSOA11CD")) #lsoa version gives duplicates across shared boundaries yuck
+nspl <- left_join(nspl, county.look, by = c("laua" = "LTLA21CD")) 
+
+#work out Upper tier from %ge of postcode in a pcon
+pconcount <- nspl %>% group_by(pcon, UTLA21NM) %>% 
+  summarise("count_UTLA" = n()) %>% pivot_wider(id_cols = pcon, names_from = UTLA21NM, values_from = "count_UTLA")
+pconcount[is.na(pconcount)] <- 0
+
+#select the col that has the highest count
+pconcount <- pconcount %>%
+  rowwise %>%
+  mutate(UTLA21NM = names(.[2:176])[which.max(c_across(1:175))]) %>%
+  ungroup
+
+pcon_to_UTLA <- pconcount %>% select(pcon,UTLA21NM ) %>% unique()
+
 
 #########################################################
 #########################################################
@@ -153,6 +195,9 @@ s3write_using(lookup,
 #########################################################
 
 nspl <- left_join(nspl, lookup, by = "pcd")
+nspl <- nspl %>% select(-UTLA21CD, -UTLA21NM) #remove UTLA that generates duplicates
+nspl <- left_join(nspl, pcon_to_UTLA, by = "pcon") #join the max method one
+nspl$UTLA21NM[nspl$UTLA21NM == "NA"] <- NA
 
 s3write_using(nspl,
               FUN = write_csv,
