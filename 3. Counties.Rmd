@@ -220,23 +220,24 @@ county.table <- ofcom.df %>% ungroup() %>%
   
          "coverge30" = case_when(`Poor coverage percentile (1 is poor)` <= 30 ~ "Poor coverage",
                         `Poor coverage percentile (1 is poor)` > 30 ~ "Not poor coverage"),
-         mutant_areas = case_when(
+         county_areas = case_when(
           str_detect(UTLA21NM, "Cumbria") ~ "Cumbria",
           str_detect(UTLA21NM,"Suffolk") ~ "Suffolk",
           str_detect(UTLA21NM,"Norfolk") ~ "Norfolk",
           str_detect(UTLA21NM,"Somerset") ~ "Somerset",
           str_detect(UTLA21NM,"Cornwall") ~ "Cornwall",
+          str_detect(UTLA21NM,"Devon") ~ "Devon",
           str_detect(Country,"S92000003") & `Rural (both)` == "Rural (both)" ~ "Scotland (rural)",
           str_detect(Country, "W92000004") & `Rural (both)` == "Rural (both)" ~ "Wales (rural)",
           TRUE ~ NA
          )) %>% 
            
-           group_by(mutant_areas, `Rural (both)`) %>% 
+           group_by(county_areas, `Rural (both)`) %>% 
            
            summarise(
             "Not-spots (%)" = round(sum(`5G_high_confidence_prem_out_None_count`)/sum(prem_count)*100,1),
              
-           ) %>% ungroup() %>% na.omit(`Rural (both)`) %>% pivot_wider(id_cols = mutant_areas, 
+           ) %>% ungroup() %>% na.omit(`Rural (both)`) %>% pivot_wider(id_cols = county_areas, 
                              values_from = `Not-spots (%)`,
                              names_from = `Rural (both)`) 
   
