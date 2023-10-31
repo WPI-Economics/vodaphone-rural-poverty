@@ -1,4 +1,4 @@
-
+library(tidyverse)
 
 #Report extras
 
@@ -15,12 +15,23 @@ rural.40.poor <- ofcom.df %>% filter(Rural == "Predominantly Rural" & `Deprivati
 
 round(rural.40.poor/rural.40*100,1)
 
+#number of people living in the rural.40.poor group
+rural.40.poor.df <- ofcom.df %>% filter(Rural == "Predominantly Rural" & `Deprivation group` == "1 & 2 Most deprived 40%" & 
+                                       `Poor coverage percentile (1 is poor)` <= 20) %>% 
+  
+rural.40.poor.pop21 <- rural.40.poor.df %>% summarise(x = sum(`Total population 2021`))
+
+
+
 
 u.40 <- ofcom.df %>% filter(Rural == "Predominantly Urban" & `Deprivation group` == "1 & 2 Most deprived 40%") %>% nrow()
 u.40.poor <- ofcom.df %>% filter(Rural == "Predominantly Urban" & `Deprivation group` == "1 & 2 Most deprived 40%" & 
                                        `Poor coverage percentile (1 is poor)` <= 20) %>% nrow()
 
 round(u.40.poor/u.40*100,1)
+
+
+
 
 #p5 
 # Cases of higher deprivation and lower connectivity levels coinciding are far more common in rural constituencies: of the 20% worst performing constituencies on the index, 53 are rural.
